@@ -28,9 +28,9 @@ provisioner:
   inventory:
     group_vars:
       all:
-        nifi_hostname: localhost
         nifi_uid: 1000
         nifi_gid: 1000
+        nifi_hostname: localhost
         nifi_self_signed_cert_passphrase: MoleculeTestCertPass123!
         nifi_sensitive_props_key: MoleculeTestSensitiveKey123!
         nifi_login_password: MoleculeTestPassword123!
