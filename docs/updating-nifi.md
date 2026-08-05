@@ -130,10 +130,23 @@ rm -rf /tmp/nifi-new
 
 ## Step 6 — Verify
 
-- `just lint` (runs `ansible-lint .`) must pass.
-- End-to-end: run the role against a test host, confirm the container starts,
-  `journalctl -fu nifi` shows a clean startup, and the web UI is reachable at
-  the configured hostname and accepts the configured login.
+- `just prek-run-on-all` (runs ansible-lint, markdownlint, codespell and reuse
+  via [prek](https://prek.j178.dev/)) must pass. Note that `files/conf/` and
+  `files/scripts/` are excluded from these hooks (see
+  [`.pre-commit-config.yaml`](../.pre-commit-config.yaml)), so refreshed
+  upstream files are left byte-for-byte as shipped.
+- End-to-end: run the Molecule scenario, which installs the role, starts the
+  container and asserts both that `nifi.service` becomes active and that the
+  web UI responds:
+
+  ```sh
+  molecule test --scenario-name default
+  ```
+
+  See [`molecule/README.md`](../molecule/README.md) for setup, and
+  [`molecule/default/molecule.yml`](../molecule/default/molecule.yml) for the
+  `nifi_debug_service_enabled` flag, which dumps `journalctl -xeu nifi.service`
+  when the scenario fails.
 - Re-check `git diff defaults/main.yml files/conf/ files/scripts/` before
   committing — changes should be limited to the version bump, refreshed
   upstream conf, and any intentional script ports from
