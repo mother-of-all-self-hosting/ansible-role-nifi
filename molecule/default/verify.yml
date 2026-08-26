@@ -244,9 +244,9 @@
     - name: Show the Apache NiFi verification summary
       ansible.builtin.debug:
         msg:
-          - "systemd unit: {{ nifi_service.status.ActiveState }}"
-          - "web interface on port {{ nifi_container_https_port }}: HTTP {{ nifi_web_interface.status }}"
-          - "unauthenticated API request: HTTP {{ nifi_about_anonymous.status }}"
-          - "login with a wrong password: HTTP {{ nifi_token_wrong.status }}"
-          - "login with the configured credentials: HTTP {{ nifi_token.status }}"
-          - "reported version: {{ nifi_about.json.about.version }} (build tag {{ nifi_about.json.about.buildTag }})"
+          - "Apache NiFi systemd unit: {{ nifi_service.status.ActiveState }}"
+          - "Apache NiFi web interface on port {{ nifi_container_https_port }}: HTTP {{ nifi_web_interface.status }}"
+          - "Apache NiFi unauthenticated API request: HTTP {{ nifi_about_anonymous.status }}"
+          - "Apache NiFi login with a wrong password: HTTP {{ nifi_token_wrong.status }}"
+          - "Apache NiFi login with the configured credentials: HTTP {{ nifi_token.status }}"
+          - "Apache NiFi reported version: {{ nifi_about.json.about.version }} (build tag {{ nifi_about.json.about.buildTag }})"
