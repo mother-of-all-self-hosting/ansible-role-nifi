@@ -1,8 +1,9 @@
 ---
 galaxy_info:
   author: spatterlight
-  namespace: spatterlight
+  company: spatterlight
   role_name: nifi
+  namespace: spatterlight
   description: An Ansible role for installing Apache NiFi, a system to process and distribute data
   platforms:
     - name: Debian
