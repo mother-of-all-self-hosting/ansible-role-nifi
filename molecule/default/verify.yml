@@ -15,13 +15,13 @@
     nifi_base_url: "https://localhost:{{ nifi_container_https_port }}"
 
   tasks:
-    # Only for values that describe the role itself (the version Renovate bumps).
-    # Scenario-tuned values must keep coming from the scenario's group_vars, which is why
-    # this is loaded into a namespace of its own instead of over the play's variables.
-    - name: Read the Apache NiFi role defaults
+    # The role is not included in this playbook, so its defaults are not in
+    # scope. Reading defaults/main.yml directly ties the version assertion
+    # below.
+    - name: Load the role defaults
       ansible.builtin.include_vars:
-        file: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
-        name: nifi_role_defaults
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: nifi_defaults
 
     - name: Wait for the Apache NiFi systemd service to become active (up to 180s)
       ansible.builtin.systemd_service:
@@ -211,7 +211,7 @@
       ansible.builtin.command:
         cmd: >-
           docker run --rm --entrypoint sh
-          docker.io/apache/nifi:{{ nifi_role_defaults.nifi_version }}
+          docker.io/apache/nifi:{{ nifi_defaults.nifi_version }}
           -c 'cd /opt/nifi/nifi-current/conf && sha256sum
           authorizers.xml bootstrap.conf logback.xml login-identity-providers.xml
           nifi.properties state-management.xml zookeeper.properties | sort -k 2'
@@ -222,10 +222,10 @@
       ansible.builtin.assert:
         that: nifi_shipped_conf.stdout == nifi_image_conf.stdout
         fail_msg: >-
-          files/conf/ no longer matches apache/nifi:{{ nifi_role_defaults.nifi_version }}.
+          files/conf/ no longer matches apache/nifi:{{ nifi_defaults.nifi_version }}.
           Refresh those files from the new image and re-check the `nifi_*_replacements_default`
           variables, as described in docs/updating-nifi.md.
-        success_msg: "files/conf/ matches apache/nifi:{{ nifi_role_defaults.nifi_version }}"
+        success_msg: "files/conf/ matches apache/nifi:{{ nifi_defaults.nifi_version }}"
 
     # The scenario leaves `nifi_identifier` at its default, so the base path is /nifi.
     - name: Read the container label file
