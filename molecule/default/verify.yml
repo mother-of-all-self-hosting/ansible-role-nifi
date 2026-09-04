@@ -159,20 +159,14 @@
       register: nifi_about
       failed_when: false
 
-    # This is what earns patch-level automerge: the container that is running is the one
-    # `nifi_version` in defaults/main.yml names, as reported by the process itself.
-    - name: Assert that Apache NiFi runs the version the role pins
+    - name: Assert the running Apache NiFi is the version this role installs
       ansible.builtin.assert:
         that:
           - nifi_about.status == 200
-          - nifi_about.json.about.version == nifi_role_defaults.nifi_version
-          - nifi_about.json.about.buildTag == 'rel/nifi-' + nifi_role_defaults.nifi_version
-        fail_msg: >-
-          Apache NiFi reports version
-          {{ nifi_about.json.about.version | default('unknown') }} /
-          build tag {{ nifi_about.json.about.buildTag | default('unknown') }},
-          but defaults/main.yml pins {{ nifi_role_defaults.nifi_version }}
-        success_msg: "Apache NiFi runs {{ nifi_role_defaults.nifi_version }}, the version defaults/main.yml pins"
+          - nifi_about.json.about.version == nifi_defaults.nifi_version
+          - nifi_about.json.about.buildTag == 'rel/nifi-' + nifi_defaults.nifi_version
+        fail_msg: "Apache NiFi reports {{ nifi_about.json.about.version | default('none') }}, expected {{ nifi_defaults.nifi_version }}"
+        success_msg: "Apache NiFi reports {{ nifi_about.json.about.version }}"
 
     - name: Read the marker file mounted through nifi_container_additional_volumes
       ansible.builtin.command:
