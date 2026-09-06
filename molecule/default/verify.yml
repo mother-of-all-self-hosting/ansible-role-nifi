@@ -148,7 +148,7 @@
           conf/login-identity-providers.xml did not reach the process
         success_msg: "Apache NiFi accepts the credentials the role configured"
 
-    - name: Retrieve the Apache NiFi version
+    - name: Query the version of the running Apache NiFi
       ansible.builtin.uri:
         url: "{{ nifi_base_url }}/nifi-api/flow/about"
         method: GET
