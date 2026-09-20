@@ -34,6 +34,13 @@
 - name: Run if Traefik is enabled
   when: nifi_container_labels_traefik_enabled | bool
   block:
+    - name: (Deprecation) Catch and report Apache NiFi labels for Traefik in the old string format
+      ansible.builtin.fail:
+        msg: >-
+          `nifi_container_labels_additional_labels` now require a list of strings.
+          Replace `nifi_container_labels_additional_labels: |` with `nifi_container_labels_additional_labels_custom:` and make each label a list item.
+      when: "nifi_container_labels_additional_labels | default([]) is string"
+
     - name: Fail if Traefik settings required for Apache NiFi are not defined
       ansible.builtin.fail:
         msg: >-
