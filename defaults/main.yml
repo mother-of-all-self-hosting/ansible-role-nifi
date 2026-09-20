@@ -28,23 +28,6 @@ nifi_gid: ""
 # The hostname at which Apache NiFi is served.
 nifi_hostname: ""
 
-# A passphrase used to generate a self-signed certificate
-# which is used to serve Apache NiFi via HTTPS internally
-nifi_self_signed_cert_passphrase: ""
-
-# A passphrase used to encrypt sensitive values inputted into NiFi
-# Generate one using `pwgen -s 64 1`, or some other way
-nifi_sensitive_props_key: ""
-
-# The default login credentials to configure
-# The password must be at least 12 characters, generate one using `pwgen -s 32 1`, or some other way
-# The salt must be exactly 22 characters, and does not necessarily need to be changed from default value
-#
-# These variables are used by the `nifi_login_identity_providers_xml_replacements_default` variable
-nifi_login_username: admin
-nifi_login_password: ""
-nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
-
 # The path at which Apache NiFi is exposed.
 # This value must either be `/` or not end with a slash (e.g. `/nifi`).
 #
@@ -52,27 +35,19 @@ nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
 # technical limitations.
 nifi_path_prefix: /
 
-# Controls whether Ansible logs the following tasks:
-# 1. "Ensure Apache NiFi properties configuration files have the defined adjustments"
-#
-# By default this is set to true such that passwords are not printed to the log
-# However, this also obscures errors if the task fails for some reason, to log the error
-# you can temporarily set this variable to false via the `-e nifi_no_log=false` command line argument
-nifi_no_log: true
-
 nifi_container_image: "{{ nifi_container_image_registry_prefix }}apache/nifi:{{ nifi_container_image_tag }}"
 nifi_container_image_tag: "{{ nifi_version }}"
 nifi_container_image_registry_prefix: "{{ nifi_container_image_registry_prefix_upstream }}"
 nifi_container_image_registry_prefix_upstream: "{{ nifi_container_image_registry_prefix_upstream_default }}"
 nifi_container_image_registry_prefix_upstream_default: docker.io/
 
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+nifi_container_network: "{{ nifi_identifier }}"
+
 # Controls whether the container exposes its HTTPS port (tcp/8443 in the container).
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
 nifi_container_https_host_bind_port: ""
-
-# The base container network. It will be auto-created by this role if it doesn't exist already.
-nifi_container_network: "{{ nifi_identifier }}"
 
 # The port number that Apache NiFi listens on inside the container.
 #
@@ -214,17 +189,30 @@ nifi_systemd_wanted_services_list_default: []
 nifi_systemd_wanted_services_list_auto: []
 nifi_systemd_wanted_services_list_custom: []
 
-# nifi_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+# A passphrase used to generate a self-signed certificate
+# which is used to serve Apache NiFi via HTTPS internally
+nifi_self_signed_cert_passphrase: ""
+
+# A passphrase used to encrypt sensitive values inputted into NiFi
+# Generate one using `pwgen -s 64 1`, or some other way
+nifi_sensitive_props_key: ""
+
+# The default login credentials to configure
+# The password must be at least 12 characters, generate one using `pwgen -s 32 1`, or some other way
+# The salt must be exactly 22 characters, and does not necessarily need to be changed from default value
 #
-# **It is recommended that you do NOT add any NiFi environment variables,
-# due to technical limitations they will cause tasks to be marked as changed when they aren't,
-# since environment variables trigger write operations to the configuration files which causes conflicts with Ansible**
+# These variables are used by the `nifi_login_identity_providers_xml_replacements_default` variable
+nifi_login_username: admin
+nifi_login_password: ""
+nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
+
+# Controls whether Ansible logs the following tasks:
+# 1. "Ensure Apache NiFi properties configuration files have the defined adjustments"
 #
-# Example:
-# nifi_environment_variables_additional_variables: |
-#   VAR=1
-#   ANOTHER=value
-nifi_environment_variables_additional_variables: ""
+# By default this is set to true such that passwords are not printed to the log
+# However, this also obscures errors if the task fails for some reason, to log the error
+# you can temporarily set this variable to false via the `-e nifi_no_log=false` command line argument
+nifi_no_log: true
 
 # nifi_authorizers_xml_replacements contains a list of dictionaries of XPath expressions
 # This can be used to add, modify, or remove any property from the default 'authorizers.xml` stored in files/conf/
@@ -378,3 +366,15 @@ nifi_zookeeper_properties_replacements: []
 #   - key: java.arg.3
 #     value: -Xmx512m
 nifi_bootstrap_conf_replacements: []
+
+# nifi_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+#
+# **It is recommended that you do NOT add any NiFi environment variables,
+# due to technical limitations they will cause tasks to be marked as changed when they aren't,
+# since environment variables trigger write operations to the configuration files which causes conflicts with Ansible**
+#
+# Example:
+# nifi_environment_variables_additional_variables: |
+#   VAR=1
+#   ANOTHER=value
+nifi_environment_variables_additional_variables: ""
