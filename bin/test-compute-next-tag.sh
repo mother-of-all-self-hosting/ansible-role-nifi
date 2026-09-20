@@ -56,7 +56,6 @@ scenario() {
 		# renovate: datasource=docker depName=apache/nifi versioning=semver
 		nifi_version: 2.11.0
 		nifi_container_image_tag: "{{ nifi_version }}"
-		nifi_container_image_self_build_repo_version: "{{ 'v' + nifi_version if nifi_version != 'latest' else 'main' }}"
 	YAML
 	printf 'placeholder\n' > files/conf/nifi.properties
 	printf 'placeholder\n' > meta/main.yml

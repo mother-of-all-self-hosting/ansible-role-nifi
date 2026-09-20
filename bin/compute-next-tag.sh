@@ -49,7 +49,7 @@ role_defining_paths=(
 )
 
 # Anchored on `nifi_version:` so that neither the `# renovate:` annotation above
-# it nor `nifi_container_image_tag` / `nifi_container_image_self_build_repo_version`,
+# it nor `nifi_container_image_tag`,
 # which are derived from it, can be mistaken for it.
 version="$(sed -nE 's|^nifi_version:[[:space:]]*"?([^"[:space:]]+)"?.*$|\1|p' "$defaults_path" | head -n1)"
 
@@ -59,7 +59,7 @@ if [ -z "$version" ]; then
 fi
 
 # Apache NiFi's own version is carried without a leading `v` (the `v` lives in
-# the tags and in `nifi_container_image_self_build_repo_version`), but tolerate
+# the tags, but tolerate
 # one so that a future change of convention does not produce a doubled prefix.
 tag_prefix="v${version#v}-"
 
