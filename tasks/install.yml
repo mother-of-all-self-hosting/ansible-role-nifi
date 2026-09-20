@@ -48,6 +48,7 @@
     - nifi.properties
     - state-management.xml
     - zookeeper.properties
+  register: nifi_config_files_default_result
 
 - name: Ensure Apache NiFi XML configuration files have the defined adjustments
   community.general.xml:
@@ -63,6 +64,7 @@
       - { "file": "login-identity-providers.xml", "parameters": "{{ nifi_login_identity_providers_xml_replacements }}" }
       - { "file": "state-management.xml", "parameters": "{{ nifi_state_management_xml_replacements }}" }
     - parameters
+  register: nifi_config_files_xml_result
 
 - name: Ensure Apache NiFi properties configuration files have the defined adjustments
   no_log: "{{ nifi_no_log }}"
@@ -77,6 +79,7 @@
       - { "file": "zookeeper.properties", "parameters": "{{ nifi_zookeeper_properties_replacements }}" }
       - { "file": "bootstrap.conf", "parameters": "{{ nifi_bootstrap_conf_replacements }}" }
     - parameters
+  register: nifi_config_files_properties_result
 
 - name: Ensure Apache NiFi adjusted configuration files installed
   ansible.builtin.copy:
@@ -94,6 +97,7 @@
     - { "file": "nifi.properties" }
     - { "file": "zookeeper.properties" }
     - { "file": "bootstrap.conf" }
+  register: nifi_config_files_adjusted_result
 
 - name: Ensure Apache NiFi support files installed
   ansible.builtin.template:
@@ -105,6 +109,7 @@
   with_items:
     - env
     - labels
+  register: nifi_support_files_result
 
 - name: Ensure Apache NiFi custom scripts installed
   ansible.builtin.copy:
@@ -116,6 +121,7 @@
   with_items:
     - common.sh
     - start.sh
+  register: nifi_scripts_result
 
 - name: Generate private key
   community.crypto.openssl_privatekey:
@@ -227,3 +233,19 @@
     src: "{{ role_path }}/templates/systemd/nifi.service.j2"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ nifi_identifier }}.service"
     mode: "0644"
+  register: nifi_systemd_service_result
+
+- name: Determine whether Apache NiFi needs a restart
+  ansible.builtin.set_fact:
+    nifi_restart_necessary: >-
+      {{
+        nifi_config_files_default_result.changed | default(false)
+        or nifi_config_files_xml_result.changed | default(false)
+        or nifi_config_files_properties_result.changed | default(false)
+        or nifi_config_files_adjusted_result.changed | default(false)
+        or nifi_support_files_result.changed | default(false)
+        or nifi_scripts_result.changed | default(false)
+        or nifi_systemd_service_result.changed | default(false)
+        or nifi_container_image_pull_result_ansible_module.changed | default(false)
+        or nifi_container_image_pull_result_command.changed | default(false)
+      }}
