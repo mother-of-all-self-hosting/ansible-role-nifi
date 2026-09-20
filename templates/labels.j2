@@ -59,4 +59,6 @@ traefik.http.services.{{ nifi_identifier }}.loadbalancer.server.scheme=https
 traefik.http.services.{{ nifi_identifier }}.loadbalancer.serverstransport={{ nifi_container_labels_traefik_serverstransport }}
 {% endif %}
 
-{{ nifi_container_labels_additional_labels }}
+{% for arg in nifi_container_labels_additional_labels %}
+{{ arg }}
+{% endfor %}

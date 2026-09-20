@@ -114,12 +114,15 @@ nifi_container_labels_traefik_serverstransport: "{{ nifi_traefik_serverstranspor
 
 # nifi_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
+# To add your own custom labels, use `nifi_container_labels_additional_labels_custom`
 #
 # Example:
-# nifi_container_labels_additional_labels: |
-#   my.label=1
-#   another.label="here"
-nifi_container_labels_additional_labels: ""
+# nifi_container_labels_additional_labels_custom:
+#   - my.label=1
+#   - another.label="here"
+nifi_container_labels_additional_labels: "{{ nifi_container_labels_additional_labels_auto + nifi_container_labels_additional_labels_custom }}"
+nifi_container_labels_additional_labels_auto: []
+nifi_container_labels_additional_labels_custom: []
 
 # A list of extra arguments to pass to the container (`docker run` command)
 nifi_container_extra_arguments: []
