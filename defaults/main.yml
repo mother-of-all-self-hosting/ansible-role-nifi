@@ -124,8 +124,10 @@ nifi_container_labels_additional_labels: "{{ nifi_container_labels_additional_la
 nifi_container_labels_additional_labels_auto: []
 nifi_container_labels_additional_labels_custom: []
 
-# A list of extra arguments to pass to the container (`docker run` command)
-nifi_container_extra_arguments: []
+# A list of extra arguments to pass to the container (`docker create` command)
+nifi_container_extra_arguments: "{{ nifi_container_extra_arguments_auto + nifi_container_extra_arguments_custom }}"
+nifi_container_extra_arguments_auto: []
+nifi_container_extra_arguments_custom: []
 
 # A list of extra arguments to pass to the process inside the container
 # Example: ['--SOME_ARGUMENT']
