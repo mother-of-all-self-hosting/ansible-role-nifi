@@ -28,23 +28,6 @@ nifi_gid: ""
 # The hostname at which Apache NiFi is served.
 nifi_hostname: ""
 
-# A passphrase used to generate a self-signed certificate
-# which is used to serve Apache NiFi via HTTPS internally
-nifi_self_signed_cert_passphrase: ""
-
-# A passphrase used to encrypt sensitive values inputted into NiFi
-# Generate one using `pwgen -s 64 1`, or some other way
-nifi_sensitive_props_key: ""
-
-# The default login credentials to configure
-# The password must be at least 12 characters, generate one using `pwgen -s 32 1`, or some other way
-# The salt must be exactly 22 characters, and does not necessarily need to be changed from default value
-#
-# These variables are used by the `nifi_login_identity_providers_xml_replacements_default` variable
-nifi_login_username: admin
-nifi_login_password: ""
-nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
-
 # The path at which Apache NiFi is exposed.
 # This value must either be `/` or not end with a slash (e.g. `/nifi`).
 #
@@ -52,35 +35,25 @@ nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
 # technical limitations.
 nifi_path_prefix: /
 
-# Controls whether Ansible logs the following tasks:
-# 1. "Ensure Apache NiFi properties configuration files have the defined adjustments"
-#
-# By default this is set to true such that passwords are not printed to the log
-# However, this also obscures errors if the task fails for some reason, to log the error
-# you can temporarily set this variable to false via the `-e nifi_no_log=false` command line argument
-nifi_no_log: true
-
 nifi_container_image: "{{ nifi_container_image_registry_prefix }}apache/nifi:{{ nifi_container_image_tag }}"
 nifi_container_image_tag: "{{ nifi_version }}"
 nifi_container_image_registry_prefix: "{{ nifi_container_image_registry_prefix_upstream }}"
 nifi_container_image_registry_prefix_upstream: "{{ nifi_container_image_registry_prefix_upstream_default }}"
 nifi_container_image_registry_prefix_upstream_default: docker.io/
 
-nifi_container_image_self_build: false
-nifi_container_image_self_build_name: "apache/nifi:{{ nifi_container_image_self_build_repo_version }}"
-nifi_container_image_self_build_repo: "https://github.com/apache/nifi.git"
-nifi_container_image_self_build_repo_version: "{{ 'v' + nifi_version if nifi_version != 'latest' else 'main' }}"
-nifi_container_image_self_build_src_files_path: "{{ nifi_base_path }}/docker-src"
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+nifi_container_network: "{{ nifi_identifier }}"
 
 # Controls whether the container exposes its HTTPS port (tcp/8443 in the container).
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
 nifi_container_https_host_bind_port: ""
 
-# The base container network. It will be auto-created by this role if it doesn't exist already.
-nifi_container_network: "{{ nifi_identifier }}"
-
-# The port number in the container
+# The port number that Apache NiFi listens on inside the container.
+#
+# This drives `nifi.web.https.port` in `nifi.properties` (see `nifi_properties_replacements_default`),
+# the container port that `nifi_container_https_host_bind_port` publishes,
+# and the port Traefik sends traffic to (see `../templates/labels.j2`).
 nifi_container_https_port: 8443
 
 # A list of additional container networks that the container would be connected to.
@@ -141,15 +114,26 @@ nifi_container_labels_traefik_serverstransport: "{{ nifi_traefik_serverstranspor
 
 # nifi_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
 # See `../templates/labels.j2` for details.
+# To add your own custom labels, use `nifi_container_labels_additional_labels_custom`
 #
 # Example:
-# nifi_container_labels_additional_labels: |
-#   my.label=1
-#   another.label="here"
-nifi_container_labels_additional_labels: ""
+# nifi_container_labels_additional_labels_custom:
+#   - my.label=1
+#   - another.label="here"
+nifi_container_labels_additional_labels: "{{ nifi_container_labels_additional_labels_auto + nifi_container_labels_additional_labels_custom }}"
+nifi_container_labels_additional_labels_auto: []
+nifi_container_labels_additional_labels_custom: []
 
-# A list of extra arguments to pass to the container (`docker run` command)
-nifi_container_extra_arguments: []
+# A list of extra arguments to pass to the container (`docker create` command)
+nifi_container_extra_arguments: "{{ nifi_container_extra_arguments_auto + nifi_container_extra_arguments_custom }}"
+nifi_container_extra_arguments_auto: []
+nifi_container_extra_arguments_custom: []
+
+# A list of extra arguments to pass to the process inside the container
+# Example: ['--SOME_ARGUMENT']
+nifi_process_extra_arguments: "{{ nifi_process_extra_arguments_auto + nifi_process_extra_arguments_custom }}"
+nifi_process_extra_arguments_auto: []
+nifi_process_extra_arguments_custom: []
 
 # Specifies the value of the `X-XSS-Protection` header
 # Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
@@ -210,17 +194,61 @@ nifi_systemd_wanted_services_list_default: []
 nifi_systemd_wanted_services_list_auto: []
 nifi_systemd_wanted_services_list_custom: []
 
-# nifi_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+# Controls how long to wait for the container to stop gracefully before killing it.
+nifi_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
+
+# Controls how long the pre-start cleanup should wait for stale container-name release
+# before failing startup explicitly.
+nifi_container_cleanup_timeout_seconds: "{{ devture_systemd_docker_base_container_cleanup_timeout_seconds }}"
+
+# Controls the delay between pre-start cleanup retries.
+nifi_container_cleanup_retry_delay_seconds: "{{ devture_systemd_docker_base_container_cleanup_retry_delay_seconds }}"
+
+# Shell command used in the systemd pre-start phase to deterministically remove a stale
+# container and wait until Docker releases its name.
+nifi_container_cleanup_command: |
+  i=0;
+  while [ "$i" -lt {{ nifi_container_cleanup_timeout_seconds }} ]; do
+  {{ devture_systemd_docker_base_host_command_docker }} stop -t {{ nifi_container_stop_grace_time_seconds }} {{ nifi_identifier }} >/dev/null 2>&1 || true;
+  {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ nifi_identifier }} >/dev/null 2>&1 || true;
+  if {{ devture_systemd_docker_base_host_command_docker }} container inspect {{ nifi_identifier }} >/dev/null 2>&1; then
+  i=$((i + 1));
+  sleep {{ nifi_container_cleanup_retry_delay_seconds }};
+  continue;
+  fi;
+  if {{ devture_systemd_docker_base_host_command_docker }} info >/dev/null 2>&1; then
+  exit 0;
+  fi;
+  echo "Failed to query Docker daemon while cleaning up {{ nifi_identifier }}" >&2;
+  exit 1;
+  done;
+  echo "Failed to remove stale container {{ nifi_identifier }} after {{ nifi_container_cleanup_timeout_seconds }} attempts" >&2;
+  exit 1
+
+# A passphrase used to generate a self-signed certificate
+# which is used to serve Apache NiFi via HTTPS internally
+nifi_self_signed_cert_passphrase: ""
+
+# A passphrase used to encrypt sensitive values inputted into NiFi
+# Generate one using `pwgen -s 64 1`, or some other way
+nifi_sensitive_props_key: ""
+
+# The default login credentials to configure
+# The password must be at least 12 characters, generate one using `pwgen -s 32 1`, or some other way
+# The salt must be exactly 22 characters, and does not necessarily need to be changed from default value
 #
-# **It is recommended that you do NOT add any NiFi environment variables,
-# due to technical limitations they will cause tasks to be marked as changed when they aren't,
-# since environment variables trigger write operations to the configuration files which causes conflicts with Ansible**
+# These variables are used by the `nifi_login_identity_providers_xml_replacements_default` variable
+nifi_login_username: admin
+nifi_login_password: ""
+nifi_login_salt: 0tfETQ5kFWhcT4oPwdbHbL
+
+# Controls whether Ansible logs the following tasks:
+# 1. "Ensure Apache NiFi properties configuration files have the defined adjustments"
 #
-# Example:
-# nifi_environment_variables_additional_variables: |
-#   VAR=1
-#   ANOTHER=value
-nifi_environment_variables_additional_variables: ""
+# By default this is set to true such that passwords are not printed to the log
+# However, this also obscures errors if the task fails for some reason, to log the error
+# you can temporarily set this variable to false via the `-e nifi_no_log=false` command line argument
+nifi_no_log: true
 
 # nifi_authorizers_xml_replacements contains a list of dictionaries of XPath expressions
 # This can be used to add, modify, or remove any property from the default 'authorizers.xml` stored in files/conf/
@@ -306,6 +334,9 @@ nifi_properties_replacements_default:
   - key: nifi.web.https.host
     value: 0.0.0.0
 
+  - key: nifi.web.https.port
+    value: "{{ nifi_container_https_port }}"
+
   - key: nifi.web.proxy.context.path
     value: /
 
@@ -371,3 +402,25 @@ nifi_zookeeper_properties_replacements: []
 #   - key: java.arg.3
 #     value: -Xmx512m
 nifi_bootstrap_conf_replacements: []
+
+# nifi_environment_variables_additional_variables contains a multiline string with additional environment variables to pass to the container.
+#
+# **It is recommended that you do NOT add any NiFi environment variables,
+# due to technical limitations they will cause tasks to be marked as changed when they aren't,
+# since environment variables trigger write operations to the configuration files which causes conflicts with Ansible**
+#
+# Example:
+# nifi_environment_variables_additional_variables: |
+#   VAR=1
+#   ANOTHER=value
+nifi_environment_variables_additional_variables: ""
+
+# nifi_restart_necessary controls whether the Apache NiFi systemd
+# service will be restarted (when true) or merely started (when false) by the
+# systemd service manager role (when conditional restart is enabled).
+#
+# This value is automatically computed during installation based on whether
+# any configuration files, the systemd service file, or the container image changed.
+# The default of `false` means "no restart needed" — appropriate when the role's
+# installation tasks haven't run (e.g., due to --tags skipping them).
+nifi_restart_necessary: false

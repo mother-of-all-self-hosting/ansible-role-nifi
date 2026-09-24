@@ -48,6 +48,7 @@
     - nifi.properties
     - state-management.xml
     - zookeeper.properties
+  register: nifi_config_files_default_result
 
 - name: Ensure Apache NiFi XML configuration files have the defined adjustments
   community.general.xml:
@@ -63,6 +64,7 @@
       - { "file": "login-identity-providers.xml", "parameters": "{{ nifi_login_identity_providers_xml_replacements }}" }
       - { "file": "state-management.xml", "parameters": "{{ nifi_state_management_xml_replacements }}" }
     - parameters
+  register: nifi_config_files_xml_result
 
 - name: Ensure Apache NiFi properties configuration files have the defined adjustments
   no_log: "{{ nifi_no_log }}"
@@ -77,6 +79,7 @@
       - { "file": "zookeeper.properties", "parameters": "{{ nifi_zookeeper_properties_replacements }}" }
       - { "file": "bootstrap.conf", "parameters": "{{ nifi_bootstrap_conf_replacements }}" }
     - parameters
+  register: nifi_config_files_properties_result
 
 - name: Ensure Apache NiFi adjusted configuration files installed
   ansible.builtin.copy:
@@ -94,6 +97,7 @@
     - { "file": "nifi.properties" }
     - { "file": "zookeeper.properties" }
     - { "file": "bootstrap.conf" }
+  register: nifi_config_files_adjusted_result
 
 - name: Ensure Apache NiFi support files installed
   ansible.builtin.template:
@@ -105,6 +109,7 @@
   with_items:
     - env
     - labels
+  register: nifi_support_files_result
 
 - name: Ensure Apache NiFi custom scripts installed
   ansible.builtin.copy:
@@ -116,6 +121,7 @@
   with_items:
     - common.sh
     - start.sh
+  register: nifi_scripts_result
 
 - name: Generate private key
   community.crypto.openssl_privatekey:
@@ -181,48 +187,25 @@
     group: "{{ nifi_gid }}"
     mode: "0600"
 
-- name: Run if self-building of Apache NiFi container image is not enabled
-  when: "not nifi_container_image_self_build | bool"
-  block:
-    - name: Ensure Apache NiFi container image is pulled via community.docker.docker_image_pull
-      when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'
-      community.docker.docker_image_pull:
-        name: "{{ nifi_container_image }}"
-        pull: always
-      register: result
-      retries: "{{ devture_playbook_help_container_retries_count }}"
-      delay: "{{ devture_playbook_help_container_retries_delay }}"
-      until: result is not failed
+- name: Ensure Apache NiFi container image is pulled via community.docker.docker_image_pull
+  when: devture_systemd_docker_base_container_image_pull_method == 'ansible-module'
+  community.docker.docker_image_pull:
+    name: "{{ nifi_container_image }}"
+    pull: always
+  register: nifi_container_image_pull_result_ansible_module
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: nifi_container_image_pull_result_ansible_module is not failed
 
-    - name: Ensure Apache NiFi container image is pulled via ansible.builtin.command
-      when: devture_systemd_docker_base_container_image_pull_method == 'command'
-      ansible.builtin.command:
-        cmd: "{{ devture_systemd_docker_base_host_command_docker }} pull {{ nifi_container_image }}"
-      register: result
-      retries: "{{ devture_playbook_help_container_retries_count }}"
-      delay: "{{ devture_playbook_help_container_retries_delay }}"
-      until: result is not failed
-      changed_when: "'Downloaded newer image' in result.stdout"
-
-- name: Run if self-building of Apache NiFi container image is enabled
-  when: "nifi_container_image_self_build | bool"
-  block:
-    - name: Ensure Apache NiFi repository is present on self-build
-      ansible.builtin.git:
-        repo: "{{ nifi_container_image_self_build_repo }}"
-        version: "{{ nifi_container_image_self_build_repo_version }}"
-        dest: "{{ nifi_container_image_self_build_src_files_path }}"
-        force: "yes"
-      register: nifi_git_pull_results
-
-    - name: Ensure Apache NiFi container image is built
-      community.docker.docker_image_build:
-        name: "{{ nifi_container_image_self_build_name }}"
-        dockerfile: Dockerfile
-        path: "{{ nifi_container_image_self_build_src_files_path }}"
-        pull: true
-        rebuild: "{{ 'always' if nifi_git_pull_results.changed | bool else 'never' }}"
-      register: nifi_container_image_build_result
+- name: Ensure Apache NiFi container image is pulled via ansible.builtin.command
+  when: devture_systemd_docker_base_container_image_pull_method == 'command'
+  ansible.builtin.command:
+    cmd: "{{ devture_systemd_docker_base_host_command_docker }} pull {{ nifi_container_image }}"
+  register: nifi_container_image_pull_result_command
+  retries: "{{ devture_playbook_help_container_retries_count }}"
+  delay: "{{ devture_playbook_help_container_retries_delay }}"
+  until: nifi_container_image_pull_result_command is not failed
+  changed_when: "'Downloaded newer image' in nifi_container_image_pull_result_command.stdout"
 
 - name: Ensure Apache NiFi container network is created via community.docker.docker_network
   when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
@@ -231,6 +214,7 @@
     name: "{{ nifi_container_network }}"
     driver: bridge
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
+  register: nifi_network_creation_result
 
 - name: Ensure Apache NiFi container network is created via ansible.builtin.command
   when: devture_systemd_docker_base_container_network_creation_method == 'command'
@@ -240,12 +224,28 @@
       {% if devture_systemd_docker_base_ipv6_enabled %}--ipv6{% endif %}
       {{ devture_systemd_docker_base_container_networks_driver_options_string }}
       {{ nifi_container_network }}
-  register: network_creation_result
-  changed_when: network_creation_result.rc == 0
-  failed_when: network_creation_result.rc != 0 and 'already exists' not in network_creation_result.stderr
+  register: nifi_network_creation_result
+  changed_when: nifi_network_creation_result.rc == 0
+  failed_when: nifi_network_creation_result.rc != 0 and 'already exists' not in nifi_network_creation_result.stderr
 
 - name: Ensure Apache NiFi systemd service is present
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/nifi.service.j2"
     dest: "{{ devture_systemd_docker_base_systemd_path }}/{{ nifi_identifier }}.service"
     mode: "0644"
+  register: nifi_systemd_service_result
+
+- name: Determine whether Apache NiFi needs a restart
+  ansible.builtin.set_fact:
+    nifi_restart_necessary: >-
+      {{
+        nifi_config_files_default_result.changed | default(false)
+        or nifi_config_files_xml_result.changed | default(false)
+        or nifi_config_files_properties_result.changed | default(false)
+        or nifi_config_files_adjusted_result.changed | default(false)
+        or nifi_support_files_result.changed | default(false)
+        or nifi_scripts_result.changed | default(false)
+        or nifi_systemd_service_result.changed | default(false)
+        or nifi_container_image_pull_result_ansible_module.changed | default(false)
+        or nifi_container_image_pull_result_command.changed | default(false)
+      }}
