@@ -7,6 +7,16 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
+- name: (Deprecation) Catch and report removed Apache NiFi variables for self-building
+  ansible.builtin.fail:
+    msg: |-
+      The variables for self-building Apache NiFi container image have been removed because the image has never been able to be self-built.
+
+      For details, refer to https://github.com/spatterIight/ansible-role-nifi/commit/577506a58cdd0f1f8346e98d7594595cace9af3b
+
+      The following variables in your configuration need to be removed: {{ lookup('ansible.builtin.varnames', '^nifi_container_image_self_build.*', wantlist=True) | join(', ') }}
+  when: "lookup('ansible.builtin.varnames', '^nifi_container_image_self_build.*', wantlist=True) | length > 0"
+
 - name: (Deprecation) Catch and report renamed settings
   ansible.builtin.fail:
     msg: >-
