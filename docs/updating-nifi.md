@@ -163,3 +163,9 @@ rm -rf /tmp/nifi-new
   committing — changes should be limited to the version bump, refreshed
   upstream conf, and any intentional script ports from
   [Step 4](#step-4--reconcile-filesscripts).
+
+## Version specific information
+
+### TLS cluster on NiFi 2.12
+
+If you customized NiFi to run as a TLS cluster, [NiFi 2.12 migration guidance](https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance#MigrationGuidance-Migratingto2.12.0) requires DNS hostnames for `nifi.cluster.load.balance.host` and `nifi.cluster.node.address`. Custom dashboards or alerts using the removed `connected_nodes` label must instead use the numeric `cluster_connected_node_count` and `cluster_total_node_count` metrics. The playbook's default standalone configuration does not use these cluster features.
