@@ -8,12 +8,8 @@ name: Autotag releases
 
 on:  # yamllint disable-line rule:truthy
   push:
-    # This repository's default branch, and therefore the branch Renovate
-    # opens its updates against and automerges into. The `main` branch this
-    # workflow used to watch is a leftover that nothing merges into any more,
-    # which is why no Apache NiFi bump since v2.6.0 ever got tagged by CI.
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 permissions:
@@ -35,7 +31,7 @@ jobs:
     steps:
       # The full history and all tags, since we compare against the previous release.
       - name: Check out
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@v7.0.0
         with:
           fetch-depth: 0
 

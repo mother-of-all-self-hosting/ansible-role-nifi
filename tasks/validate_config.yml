@@ -12,7 +12,7 @@
     msg: |-
       The variables for self-building Apache NiFi container image have been removed because the image has never been able to be self-built.
 
-      For details, refer to https://github.com/spatterIight/ansible-role-nifi/commit/577506a58cdd0f1f8346e98d7594595cace9af3b
+      For details, refer to https://github.com/mother-of-all-self-hosting/ansible-role-nifi/commit/577506a58cdd0f1f8346e98d7594595cace9af3b
 
       The following variables in your configuration need to be removed: {{ lookup('ansible.builtin.varnames', '^nifi_container_image_self_build.*', wantlist=True) | join(', ') }}
   when: "lookup('ansible.builtin.varnames', '^nifi_container_image_self_build.*', wantlist=True) | length > 0"
