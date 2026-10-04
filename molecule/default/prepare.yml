@@ -31,21 +31,11 @@
           - python3-lxml
           # Provides `keytool`, which `community.general.java_keystore` and `java_cert` shell out to
           - default-jdk-headless
-          # The storage driver below. Docker in a container cannot use the
-          # host's overlayfs, and fuse-overlayfs is several times faster than
-          # falling back to vfs.
-          - fuse-overlayfs
         state: present
 
     - name: Ensure Docker is installed for Apache NiFi Molecule tests preparation
       ansible.builtin.include_role:
         name: ansible-role-docker
-      vars:
-        docker_daemon_options:
-          # `vfs` makes a full copy of every layer. The Apache NiFi image is large
-          # enough for that to dominate the run - `fuse-overlayfs` gives the same
-          # nested-container isolation without the copying.
-          storage-driver: fuse-overlayfs
 
     # Bind-mounted into the Apache NiFi container through
     # `nifi_container_additional_volumes_custom`. The role does not create the source
