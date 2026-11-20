@@ -34,9 +34,6 @@
   with_items:
     - nifi_uid
     - nifi_gid
-    - nifi_hostname
-    - nifi_path_prefix
-    - nifi_container_network
     - nifi_self_signed_cert_passphrase
     - nifi_sensitive_props_key
     - nifi_login_password
