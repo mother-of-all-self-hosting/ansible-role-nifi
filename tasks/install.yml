@@ -30,6 +30,7 @@
     state: directory
     suffix: nifi
   changed_when: false
+  check_mode: false
   register: nifi_tempdir
 
 - name: Copy Apache NiFi default configuration files for customization
@@ -40,6 +41,7 @@
     owner: "{{ nifi_uid }}"
     group: "{{ nifi_gid }}"
   changed_when: false
+  check_mode: false
   with_items:
     - authorizers.xml
     - bootstrap.conf
@@ -58,6 +60,7 @@
     state: "{{ item.1.state | default('present') }}"
     pretty_print: "{{ item.1.pretty_print | default(true) }}"
   changed_when: false
+  check_mode: false
   with_subelements:
     - - { "file": "authorizers.xml", "parameters": "{{ nifi_authorizers_xml_replacements }}" }
       - { "file": "logback.xml", "parameters": "{{ nifi_logback_xml_replacements }}" }
@@ -74,6 +77,7 @@
     regexp: "^{{ item.1.key }}="
     state: "{{ item.1.state | default('present') }}"
   changed_when: false
+  check_mode: false
   with_subelements:
     - - { "file": "nifi.properties", "parameters": "{{ nifi_properties_replacements }}" }
       - { "file": "zookeeper.properties", "parameters": "{{ nifi_zookeeper_properties_replacements }}" }
@@ -98,6 +102,13 @@
     - { "file": "zookeeper.properties" }
     - { "file": "bootstrap.conf" }
   register: nifi_config_files_adjusted_result
+
+- name: Ensure Apache NiFi temporary configuration customization directory is removed
+  ansible.builtin.file:
+    path: "{{ nifi_tempdir.path }}"
+    state: absent
+  changed_when: false
+  check_mode: false
 
 - name: Ensure Apache NiFi support files installed
   ansible.builtin.template:
