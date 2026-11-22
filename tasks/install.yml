@@ -103,6 +103,13 @@
     - { "file": "bootstrap.conf" }
   register: nifi_config_files_adjusted_result
 
+- name: Ensure Apache NiFi temporary configuration customization directory is removed
+  ansible.builtin.file:
+    path: "{{ nifi_tempdir.path }}"
+    state: absent
+  changed_when: false
+  check_mode: false
+
 - name: Ensure Apache NiFi support files installed
   ansible.builtin.template:
     src: "{{ role_path }}/templates/{{ item }}.j2"
