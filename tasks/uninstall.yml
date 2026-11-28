@@ -47,20 +47,24 @@
       changed_when: nifi_base_path_deletion_result.rc == 0
       failed_when: false
 
-    - name: Ensure Apache NiFi container network does not exist via community.docker.docker_network
-      when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
-      community.docker.docker_network:
-        name: "{{ nifi_container_network }}"
-        state: absent
+    - name: Ensure Apache NiFi container network does not exist
+      when: nifi_container_network_deletion_enabled
+      block:
+        - name: Ensure Apache NiFi container network does not exist via community.docker.docker_network
+          when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
+          community.docker.docker_network:
+            name: "{{ nifi_container_network }}"
+            state: absent
+          register: nifi_network_deletion_result
 
-    - name: Ensure Apache NiFi container network does not exist via ansible.builtin.command
-      when: devture_systemd_docker_base_container_network_creation_method == 'command'
-      ansible.builtin.command:
-        cmd: >-
-          {{ devture_systemd_docker_base_host_command_docker }} network rm
-          {{ nifi_container_network }}
-      register: network_deletion_result
-      changed_when: nifi_container_network in network_deletion_result.stdout
+        - name: Ensure Apache NiFi container network does not exist via ansible.builtin.command
+          when: devture_systemd_docker_base_container_network_creation_method == 'command'
+          ansible.builtin.command:
+            cmd: >-
+              {{ devture_systemd_docker_base_host_command_docker }} network rm
+              {{ nifi_container_network }}
+          register: nifi_network_deletion_result
+          changed_when: nifi_container_network in nifi_network_deletion_result.stdout
 
 - name: Check existence of Apache NiFi local data path
   ansible.builtin.stat:

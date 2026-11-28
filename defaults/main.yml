@@ -44,6 +44,9 @@ nifi_container_image_registry_prefix_upstream_default: docker.io/
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 nifi_container_network: "{{ nifi_identifier }}"
 
+# Control if the container network is deleted on uninstalling.
+nifi_container_network_deletion_enabled: true
+
 # Controls whether the container exposes its HTTPS port (tcp/8443 in the container).
 #
 # Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
